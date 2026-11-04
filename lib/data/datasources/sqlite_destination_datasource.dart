@@ -6,14 +6,21 @@ import '../../core/constants/fixed_schemas.dart';
 import '../../core/constants/import_tables.dart';
 import '../../core/error/exceptions.dart';
 import '../../core/utils/path_helpers.dart';
+import '../../core/utils/safe_log.dart';
 import '../../core/utils/value_converter.dart';
 
 class SqliteColumnInfo {
-  SqliteColumnInfo({required this.name, required this.type, required this.pk});
+  SqliteColumnInfo({
+    required this.name,
+    required this.type,
+    required this.pk,
+    this.notNull = false,
+  });
 
   final String name;
   final String type;
   final int pk;
+  final bool notNull;
 }
 
 class SqliteDestinationDatasource {
@@ -71,6 +78,7 @@ class SqliteDestinationDatasource {
             name: r['name'] as String,
             type: (r['type'] as String?) ?? '',
             pk: r['pk'] as int? ?? 0,
+            notNull: (r['notnull'] as int? ?? 0) != 0,
           ),
         )
         .toList();
@@ -108,6 +116,9 @@ class SqliteDestinationDatasource {
 
   /// Inserts rows using case-insensitive column intersection.
   /// Returns ignored MariaDB column names.
+  ///
+  /// Throws [DestinationDbException] if a non-null source value converts to
+  /// null, or a NOT NULL SQLite column would receive null.
   List<String> replaceTable({
     required String tableName,
     required List<String> sourceColumns,
@@ -145,6 +156,67 @@ class SqliteDestinationDatasource {
     final typeByLower = <String, String>{
       for (final c in sqliteCols) c.name.toLowerCase(): c.type,
     };
+    final notNullByLower = <String, bool>{
+      for (final c in sqliteCols) c.name.toLowerCase(): c.notNull || c.pk > 0,
+    };
+
+    // Convert first so null-loss fails before clearing the destination table.
+    final prepared = <List<Object?>>[];
+    final nullProblems = <String>[];
+    const maxProblems = 25;
+
+    for (var rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+      final row = rows[rowIndex];
+      final values = <Object?>[];
+      for (final col in matched) {
+        final key = col.toLowerCase();
+        final idx = srcIndexByLower[key]!;
+        final raw = row[idx];
+        final destType = typeByLower[key] ?? 'TEXT';
+        final converted = _converter.convert(raw, destType);
+        if (converted == null &&
+            raw != null &&
+            !_isBlankSourceValue(raw)) {
+          if (nullProblems.length < maxProblems) {
+            nullProblems.add(
+              _nullLossDetail(
+                column: col,
+                rowIndex: rowIndex,
+                sqliteType: destType,
+                mariaValue: raw,
+                sqliteValue: converted,
+              ),
+            );
+          }
+        } else if (converted == null && (notNullByLower[key] ?? false)) {
+          if (nullProblems.length < maxProblems) {
+            nullProblems.add(
+              _nullLossDetail(
+                column: col,
+                rowIndex: rowIndex,
+                sqliteType: destType,
+                mariaValue: raw,
+                sqliteValue: converted,
+                notNullViolation: true,
+              ),
+            );
+          }
+        }
+        values.add(converted);
+      }
+      prepared.add(values);
+    }
+
+    if (nullProblems.isNotEmpty) {
+      final more = nullProblems.length >= maxProblems
+          ? ' (showing first $maxProblems)'
+          : '';
+      throw DestinationDbException(
+        'Null data loss in "$tableName"$more — '
+        'MariaDB value could not be inserted into SQLite: '
+        '${nullProblems.join('; ')}',
+      );
+    }
 
     clearTable(tableName);
 
@@ -153,13 +225,7 @@ class SqliteDestinationDatasource {
     final sql = 'INSERT INTO "$tableName" ($colList) VALUES ($placeholders)';
     final stmt = _db!.prepare(sql);
     try {
-      for (final row in rows) {
-        final values = <Object?>[];
-        for (final col in matched) {
-          final idx = srcIndexByLower[col.toLowerCase()]!;
-          final destType = typeByLower[col.toLowerCase()] ?? 'TEXT';
-          values.add(_converter.convert(row[idx], destType));
-        }
+      for (final values in prepared) {
         stmt.execute(values);
       }
     } finally {
@@ -168,6 +234,41 @@ class SqliteDestinationDatasource {
 
     _updateSqliteSequence(tableName, sqliteCols);
     return ignored;
+  }
+
+  String _nullLossDetail({
+    required String column,
+    required int rowIndex,
+    required String sqliteType,
+    required Object? mariaValue,
+    required Object? sqliteValue,
+    bool notNullViolation = false,
+  }) {
+    final mariaPreview = safeValuePreview(column, mariaValue);
+    final mariaType = mariaValue?.runtimeType ?? 'null';
+    final sqlitePreview = safeValuePreview(column, sqliteValue);
+    final reason = notNullViolation ? 'NOT NULL/PK' : 'convert→null';
+    return '$column row $rowIndex [$reason] '
+        'MariaDB($mariaType)=$mariaPreview → '
+        'SQLite($sqliteType)=$sqlitePreview';
+  }
+
+  /// True when MariaDB sent a non-SQL-null placeholder ("" / "null") that may
+  /// legitimately become null or a numeric default.
+  bool _isBlankSourceValue(Object raw) {
+    if (raw is String) {
+      final t = raw.trim();
+      if (t.isEmpty) return true;
+      final lower = t.toLowerCase();
+      return lower == 'null' ||
+          lower == 'nil' ||
+          lower == 'none' ||
+          lower == '-' ||
+          lower == 'n/a' ||
+          lower == 'na';
+    }
+    if (raw is List<int> && raw.isEmpty) return true;
+    return false;
   }
 
   void _updateSqliteSequence(String tableName, List<SqliteColumnInfo> columns) {

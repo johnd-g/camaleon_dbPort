@@ -3,7 +3,7 @@ part of 'import_cubit.dart';
 class ImportState extends Equatable {
   const ImportState({
     this.sourceFolder = '',
-    this.workspaceRoot = '',
+    this.outputFolder = '',
     this.mariaDbBinDir = '',
     this.localeCode = 'en',
     this.isRunning = false,
@@ -15,7 +15,7 @@ class ImportState extends Equatable {
   });
 
   final String sourceFolder;
-  final String workspaceRoot;
+  final String outputFolder;
   final String mariaDbBinDir;
   final String localeCode;
   final bool isRunning;
@@ -30,7 +30,7 @@ class ImportState extends Equatable {
 
   ImportState copyWith({
     String? sourceFolder,
-    String? workspaceRoot,
+    String? outputFolder,
     String? mariaDbBinDir,
     String? localeCode,
     bool? isRunning,
@@ -45,7 +45,7 @@ class ImportState extends Equatable {
   }) {
     return ImportState(
       sourceFolder: sourceFolder ?? this.sourceFolder,
-      workspaceRoot: workspaceRoot ?? this.workspaceRoot,
+      outputFolder: outputFolder ?? this.outputFolder,
       mariaDbBinDir: mariaDbBinDir ?? this.mariaDbBinDir,
       localeCode: localeCode ?? this.localeCode,
       isRunning: isRunning ?? this.isRunning,
@@ -59,15 +59,15 @@ class ImportState extends Equatable {
 
   @override
   List<Object?> get props => [
-    sourceFolder,
-    workspaceRoot,
-    mariaDbBinDir,
-    localeCode,
-    isRunning,
-    phase,
-    progress,
-    report,
-    errorMessage,
-    logLines,
-  ];
+        sourceFolder,
+        outputFolder,
+        mariaDbBinDir,
+        localeCode,
+        isRunning,
+        phase,
+        progress,
+        report,
+        errorMessage,
+        logLines,
+      ];
 }

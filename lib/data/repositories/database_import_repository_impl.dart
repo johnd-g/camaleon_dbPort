@@ -14,17 +14,21 @@ import '../../domain/entities/table_import_result.dart';
 import '../../domain/repositories/database_import_repository.dart';
 import '../datasources/mariadb_table_reader.dart';
 import '../datasources/mariadb_temp_server.dart';
+import '../datasources/seed_template_provider.dart';
 import '../datasources/sqlite_destination_datasource.dart';
 
 class DatabaseImportRepositoryImpl implements DatabaseImportRepository {
   DatabaseImportRepositoryImpl({
     required MariaDbTempServer mariaDbTempServer,
     required SqliteDestinationDatasource sqliteDestination,
+    required SeedTemplateProvider seedTemplateProvider,
   }) : _maria = mariaDbTempServer,
-       _sqlite = sqliteDestination;
+       _sqlite = sqliteDestination,
+       _seedTemplate = seedTemplateProvider;
 
   final MariaDbTempServer _maria;
   final SqliteDestinationDatasource _sqlite;
+  final SeedTemplateProvider _seedTemplate;
 
   @override
   Stream<Either<Failure, Object>> importDatabase(ImportRequest request) {
@@ -132,19 +136,17 @@ class DatabaseImportRepositoryImpl implements DatabaseImportRepository {
       );
     }
 
-    final seedPath = request.seedTemplatePath;
-    if (!await File(seedPath).exists()) {
-      throw DestinationDbException('Seed template missing: $seedPath');
-    }
-
     emitProgress(
       phase: ImportPhase.validating,
       message: 'Validating source folder…',
       appendLog: true,
       detail: 'Validating source folder…',
     );
-    log('Database name: ${request.databaseName}');
+    log('Output database file: ${request.databaseName}.db');
     log('Destination: ${request.destinationDbPath}');
+
+    final seedPath = await _seedTemplate.materialize();
+    log('Schema template: $seedPath');
 
     final workDb = p.join(
       Directory.systemTemp.path,
@@ -176,6 +178,10 @@ class DatabaseImportRepositoryImpl implements DatabaseImportRepository {
         if (line.trim().isEmpty || line.length > 180) return;
         logs.add(line);
       },
+    );
+    log(
+      'Temporary MariaDB schema: ${_maria.databaseName}',
+      phase: ImportPhase.startingMariaDb,
     );
 
     emitProgress(

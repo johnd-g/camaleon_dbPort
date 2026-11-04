@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -13,8 +12,7 @@ import '../../domain/usecases/import_camaleon_database.dart';
 part 'import_state.dart';
 
 class ImportCubit extends Cubit<ImportState> {
-  ImportCubit(this._importDatabase)
-    : super(ImportState(workspaceRoot: Directory.current.path));
+  ImportCubit(this._importDatabase) : super(const ImportState());
 
   final ImportCamaleonDatabase _importDatabase;
   StreamSubscription<dynamic>? _sub;
@@ -25,9 +23,9 @@ class ImportCubit extends Cubit<ImportState> {
     );
   }
 
-  void setWorkspaceRoot(String path) {
+  void setOutputFolder(String path) {
     emit(
-      state.copyWith(workspaceRoot: path, clearError: true, clearReport: true),
+      state.copyWith(outputFolder: path, clearError: true, clearReport: true),
     );
   }
 
@@ -42,8 +40,8 @@ class ImportCubit extends Cubit<ImportState> {
   Future<void> startImport() async {
     if (state.isRunning) return;
     final source = state.sourceFolder.trim();
-    final root = state.workspaceRoot.trim();
-    if (source.isEmpty || root.isEmpty) {
+    final output = state.outputFolder.trim();
+    if (source.isEmpty || output.isEmpty) {
       emit(
         state.copyWith(
           errorMessage: 'missing_paths',
@@ -69,7 +67,7 @@ class ImportCubit extends Cubit<ImportState> {
 
     final request = ImportRequest(
       sourceFolderPath: source,
-      workspaceRoot: root,
+      outputFolderPath: output,
       mariaDbBinDir: state.mariaDbBinDir.trim().isEmpty
           ? null
           : state.mariaDbBinDir.trim(),

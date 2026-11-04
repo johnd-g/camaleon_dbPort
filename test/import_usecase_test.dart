@@ -16,7 +16,10 @@ void main() {
   test('rejects empty source folder', () async {
     final useCase = ImportCamaleonDatabase(_FakeRepo());
     final event = await useCase(
-      const ImportRequest(sourceFolderPath: '', workspaceRoot: r'C:\proj'),
+      const ImportRequest(
+        sourceFolderPath: '',
+        outputFolderPath: r'C:\out',
+      ),
     ).first;
     expect(event.isLeft(), isTrue);
     event.fold(
@@ -25,10 +28,13 @@ void main() {
     );
   });
 
-  test('rejects empty workspace root', () async {
+  test('rejects empty output folder', () async {
     final useCase = ImportCamaleonDatabase(_FakeRepo());
     final event = await useCase(
-      const ImportRequest(sourceFolderPath: r'C:\db', workspaceRoot: '  '),
+      const ImportRequest(
+        sourceFolderPath: r'C:\db',
+        outputFolderPath: '',
+      ),
     ).first;
     expect(event.isLeft(), isTrue);
   });
@@ -38,7 +44,7 @@ void main() {
     final event = await useCase(
       const ImportRequest(
         sourceFolderPath: r'C:\db\demoperu2sami',
-        workspaceRoot: r'C:\proj',
+        outputFolderPath: r'C:\out',
       ),
     ).first;
     expect(event, const Right('ok'));

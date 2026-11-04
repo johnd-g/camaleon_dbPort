@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../l10n/app_localizations.dart';
@@ -94,50 +95,29 @@ class ImportPage extends StatelessWidget {
                     onPathDropped: cubit.setSourceFolder,
                   ),
                   const SizedBox(height: 8),
-                  LayoutBuilder(
-                    builder: (context, constraints) {
-                      final wide = constraints.maxWidth >= 900;
-                      final workspace = PathField(
-                        label: l10n.t('workspaceRoot'),
-                        hint: l10n.t('workspaceHint'),
-                        value: state.workspaceRoot,
-                        browseLabel: l10n.t('browse'),
-                        enabled: !state.isRunning,
-                        onBrowse: () => _pickDirectory(
-                          onPicked: cubit.setWorkspaceRoot,
-                        ),
-                        onPathDropped: cubit.setWorkspaceRoot,
-                      );
-                      final maria = PathField(
-                        label: l10n.t('mariaBin'),
-                        hint: l10n.t('mariaHint'),
-                        value: state.mariaDbBinDir,
-                        browseLabel: l10n.t('browse'),
-                        enabled: !state.isRunning,
-                        acceptFilesAsParentDir: true,
-                        onBrowse: () => _pickDirectory(
-                          onPicked: cubit.setMariaDbBinDir,
-                        ),
-                        onPathDropped: cubit.setMariaDbBinDir,
-                      );
-                      if (!wide) {
-                        return Column(
-                          children: [
-                            workspace,
-                            const SizedBox(height: 8),
-                            maria,
-                          ],
-                        );
-                      }
-                      return Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(child: workspace),
-                          const SizedBox(width: 12),
-                          Expanded(child: maria),
-                        ],
-                      );
-                    },
+                  PathField(
+                    label: l10n.t('outputFolder'),
+                    hint: l10n.t('outputHint'),
+                    value: state.outputFolder,
+                    browseLabel: l10n.t('browse'),
+                    enabled: !state.isRunning,
+                    onBrowse: () => _pickDirectory(
+                      onPicked: cubit.setOutputFolder,
+                    ),
+                    onPathDropped: cubit.setOutputFolder,
+                  ),
+                  const SizedBox(height: 8),
+                  PathField(
+                    label: l10n.t('mariaBin'),
+                    hint: l10n.t('mariaHint'),
+                    value: state.mariaDbBinDir,
+                    browseLabel: l10n.t('browse'),
+                    enabled: !state.isRunning,
+                    acceptFilesAsParentDir: true,
+                    onBrowse: () => _pickDirectory(
+                      onPicked: cubit.setMariaDbBinDir,
+                    ),
+                    onPathDropped: cubit.setMariaDbBinDir,
                   ),
                   const SizedBox(height: 10),
                   Row(
@@ -210,7 +190,8 @@ class ImportPage extends StatelessWidget {
                           flex: 5,
                           child: state.report == null
                               ? _IdlePanel(
-                                  message: state.sourceFolder.trim().isEmpty
+                                  message: state.sourceFolder.trim().isEmpty ||
+                                          state.outputFolder.trim().isEmpty
                                       ? l10n.t('idleHint')
                                       : l10n.t('idleReadyHint'),
                                 )
@@ -272,6 +253,7 @@ class _StatusBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     final bg = ok ? scheme.primaryContainer : scheme.errorContainer;
     final fg = ok ? scheme.onPrimaryContainer : scheme.onErrorContainer;
@@ -281,24 +263,39 @@ class _StatusBanner extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
       ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              title,
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: fg,
-                    fontWeight: FontWeight.w700,
-                  ),
+            Padding(
+              padding: const EdgeInsets.only(top: 6, left: 4),
+              child: Text(
+                title,
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      color: fg,
+                      fontWeight: FontWeight.w700,
+                    ),
+              ),
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: SelectableText(
-                body,
-                style: TextStyle(color: fg),
-                maxLines: 2,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                child: SelectableText(
+                  body,
+                  style: TextStyle(color: fg),
+                  maxLines: ok ? 2 : 6,
+                ),
               ),
             ),
+            if (!ok)
+              IconButton(
+                tooltip: l10n.t('copyError'),
+                onPressed: () =>
+                    Clipboard.setData(ClipboardData(text: body)),
+                icon: Icon(Icons.copy_outlined, color: fg, size: 20),
+                visualDensity: VisualDensity.compact,
+              ),
           ],
         ),
       ),

@@ -15,9 +15,9 @@ class ImportCamaleonDatabase {
         Left(ValidationFailure('Source folder is required.')),
       );
     }
-    if (request.workspaceRoot.trim().isEmpty) {
+    if (request.outputFolderPath.trim().isEmpty) {
       return Stream.value(
-        Left(ValidationFailure('Workspace root is required.')),
+        Left(ValidationFailure('Output folder is required.')),
       );
     }
     return _repository.importDatabase(request);

@@ -5,6 +5,7 @@ import 'package:mysql1/mysql1.dart';
 import 'package:path/path.dart' as p;
 
 import '../../core/error/exceptions.dart';
+import '../../core/utils/mariadb_identifiers.dart';
 import '../../core/utils/path_helpers.dart';
 import 'mariadb_locator.dart';
 
@@ -20,6 +21,8 @@ class MariaDbTempServer {
   String? _databaseName;
 
   int get port => _port ?? 0;
+
+  /// Schema name used inside the temporary MariaDB (may differ from folder name).
   String get databaseName => _databaseName ?? '';
 
   Future<void> start({
@@ -33,8 +36,14 @@ class MariaDbTempServer {
         'MariaDB/MySQL binaries not found. Install MariaDB or set the bin folder.',
       );
     }
-    final dbName = basenamePath(sourceFolderPath);
+    final folderName = basenamePath(sourceFolderPath);
+    final dbName = sanitizeMariaDbSchemaName(folderName);
     _databaseName = dbName;
+    if (dbName != folderName) {
+      onLog?.call(
+        'MariaDB schema name sanitized: "$folderName" → "$dbName"',
+      );
+    }
 
     final tempRoot = await Directory.systemTemp.createTemp('camaleon_import_');
     _workRoot = tempRoot;
@@ -50,30 +59,74 @@ class MariaDbTempServer {
     final dbDir = Directory(p.join(_dataDir!.path, dbName));
     await dbDir.create(recursive: true);
     await _copyMyisamFiles(sourceCopy, dbDir);
+    await _ensureDbOpt(dbDir);
 
     _port = await findFreePort();
     onLog?.call('Starting mariadbd on 127.0.0.1:$_port…');
     await _startServer(binaries, _dataDir!.path, _port!, onLog: onLog);
     await _waitUntilReady(binaries, _port!, onLog: onLog);
+    await _ensureSchemaVisible(onLog: onLog);
   }
 
   Future<MySqlConnection> connect() async {
     if (_port == null || _databaseName == null) {
       throw MariaDbException('MariaDB temporary server is not running.');
     }
+    // Connect without selecting DB, then USE with backticks — avoids 1049 on
+    // names that the handshake "default schema" path mishandles.
     final conn = await MySqlConnection.connect(
       ConnectionSettings(
         host: '127.0.0.1',
         port: _port!,
         user: 'root',
         password: '',
-        db: _databaseName,
         timeout: const Duration(seconds: 30),
       ),
     );
     await conn.query('SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci');
     await conn.query('SET character_set_results = utf8mb4');
+    await conn.query('USE ${quoteMariaDbIdentifier(_databaseName!)}');
     return conn;
+  }
+
+  Future<void> _ensureDbOpt(Directory dbDir) async {
+    final opt = File(p.join(dbDir.path, 'db.opt'));
+    if (await opt.exists()) return;
+    await opt.writeAsString(
+      'default-character-set=utf8mb4\n'
+      'default-collation=utf8mb4_unicode_ci\n',
+    );
+  }
+
+  Future<void> _ensureSchemaVisible({void Function(String line)? onLog}) async {
+    final dbName = _databaseName;
+    final port = _port;
+    if (dbName == null || port == null) return;
+
+    final conn = await MySqlConnection.connect(
+      ConnectionSettings(
+        host: '127.0.0.1',
+        port: port,
+        user: 'root',
+        password: '',
+        timeout: const Duration(seconds: 10),
+      ),
+    );
+    try {
+      final quoted = quoteMariaDbIdentifier(dbName);
+      final existing = await conn.query('SHOW DATABASES LIKE ?', [dbName]);
+      if (existing.isEmpty) {
+        onLog?.call('Schema "$dbName" missing after start; creating…');
+        await conn.query(
+          'CREATE DATABASE IF NOT EXISTS $quoted '
+          'CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci',
+        );
+      }
+      await conn.query('USE $quoted');
+      onLog?.call('Schema "$dbName" is usable.');
+    } finally {
+      await conn.close();
+    }
   }
 
   Future<void> stop({void Function(String line)? onLog}) async {
