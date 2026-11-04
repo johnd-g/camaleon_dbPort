@@ -19,30 +19,40 @@ class ImportProgressPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final fraction = progress?.fraction ?? (isRunning ? null : 0.0);
+    final fraction = progress?.fraction;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Text(l10n.t('progress'), style: theme.textTheme.titleMedium),
-        const SizedBox(height: 8),
+        Row(
+          children: [
+            Text(l10n.t('progress'), style: theme.textTheme.labelLarge),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                [
+                  l10n.phaseLabel(phase.name),
+                  if (progress?.currentTable != null)
+                    '${progress!.currentTable}'
+                    '${progress!.totalTables > 0 ? ' (${progress!.completedTables}/${progress!.totalTables})' : ''}',
+                ].join(' · '),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.end,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
         LinearProgressIndicator(
           value: isRunning ? fraction : (phase == ImportPhase.done ? 1 : 0),
-          minHeight: 8,
+          minHeight: 6,
           borderRadius: BorderRadius.circular(4),
         ),
-        const SizedBox(height: 8),
-        Text(l10n.phaseLabel(phase.name), style: theme.textTheme.bodyLarge),
-        if (progress?.currentTable != null) ...[
-          const SizedBox(height: 4),
-          Text(
-            '${progress!.currentTable}'
-            '${progress!.totalTables > 0 ? ' (${progress!.completedTables}/${progress!.totalTables})' : ''}',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-        ],
       ],
     );
   }

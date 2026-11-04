@@ -18,21 +18,34 @@ class ImportSummaryPanel extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(l10n.t('summary'), style: theme.textTheme.titleMedium),
+        const SizedBox(height: 6),
+        Text(
+          '${l10n.t('destination')}: ${report.destinationPath}',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        Text(
+          '${l10n.t('tablesImported')}: ${report.importedCount}  ·  '
+          '${l10n.t('tablesMissing')}: ${report.missingCount}  ·  '
+          '${l10n.t('ezwayOrders')}: ${report.ezwayOrderCount}  ·  '
+          '${l10n.t('webStores')}: ${report.webStoreCount}',
+        ),
         const SizedBox(height: 8),
-        Text('${l10n.t('destination')}: ${report.destinationPath}'),
-        Text('${l10n.t('tablesImported')}: ${report.importedCount}'),
-        Text('${l10n.t('tablesMissing')}: ${report.missingCount}'),
-        Text('${l10n.t('ezwayOrders')}: ${report.ezwayOrderCount}'),
-        Text('${l10n.t('webStores')}: ${report.webStoreCount}'),
-        const SizedBox(height: 12),
-        ConstrainedBox(
-          constraints: const BoxConstraints(maxHeight: 280),
-          child: ListView.builder(
-            itemCount: report.tableResults.length,
-            itemBuilder: (context, index) {
-              final row = report.tableResults[index];
-              return _TableResultTile(result: row);
-            },
+        Expanded(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: theme.colorScheme.outlineVariant),
+              color: theme.colorScheme.surfaceContainerLowest,
+            ),
+            child: ListView.separated(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              itemCount: report.tableResults.length,
+              separatorBuilder: (_, _) => const Divider(height: 1),
+              itemBuilder: (context, index) {
+                return _TableResultTile(result: report.tableResults[index]);
+              },
+            ),
           ),
         ),
       ],
@@ -61,12 +74,12 @@ class _TableResultTile extends StatelessWidget {
     };
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 160,
+            width: 150,
             child: Text(
               result.tableName,
               style: theme.textTheme.bodyMedium?.copyWith(

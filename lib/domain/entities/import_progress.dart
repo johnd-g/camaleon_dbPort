@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 
 enum ImportPhase {
+  idle,
   validating,
   preparingSeed,
   copyingSource,

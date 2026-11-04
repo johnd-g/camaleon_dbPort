@@ -49,6 +49,8 @@ class AppLocalizations {
       'statusMissing': 'Missing',
       'statusError': 'Skipped',
       'idleHint': 'Choose a MyISAM folder and run the import.',
+      'idleReadyHint': 'Source selected. Press Start import — results appear here.',
+      'phase_idle': 'Ready',
       'phase_validating': 'Validating',
       'phase_preparingSeed': 'Preparing seed',
       'phase_copyingSource': 'Copying source',
@@ -95,6 +97,9 @@ class AppLocalizations {
       'statusMissing': 'Ausente',
       'statusError': 'Omitida',
       'idleHint': 'Elige una carpeta MyISAM e inicia la importación.',
+      'idleReadyHint':
+          'Origen listo. Pulsa Iniciar importación — el resumen sale aquí.',
+      'phase_idle': 'Listo',
       'phase_validating': 'Validando',
       'phase_preparingSeed': 'Preparando semilla',
       'phase_copyingSource': 'Copiando origen',

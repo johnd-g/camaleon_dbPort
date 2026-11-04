@@ -151,7 +151,7 @@ class ImportCubit extends Cubit<ImportState> {
         clearError: true,
         clearReport: true,
         clearProgress: true,
-        phase: ImportPhase.validating,
+        phase: ImportPhase.idle,
         logLines: const [],
       ),
     );

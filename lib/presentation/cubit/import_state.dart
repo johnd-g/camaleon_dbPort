@@ -7,7 +7,7 @@ class ImportState extends Equatable {
     this.mariaDbBinDir = '',
     this.localeCode = 'en',
     this.isRunning = false,
-    this.phase = ImportPhase.validating,
+    this.phase = ImportPhase.idle,
     this.progress,
     this.report,
     this.errorMessage,

@@ -31,206 +31,228 @@ class ImportPage extends StatelessWidget {
         child: BlocBuilder<ImportCubit, ImportState>(
           builder: (context, state) {
             final cubit = context.read<ImportCubit>();
-            return LayoutBuilder(
-              builder: (context, constraints) {
-                return Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 960),
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.all(24),
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(
-                          minHeight: constraints.maxHeight - 48,
-                        ),
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
                         child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        l10n.t('appTitle'),
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .headlineMedium,
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        l10n.t('subtitle'),
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .bodyMedium
-                                            ?.copyWith(
-                                              color: Theme.of(context)
-                                                  .colorScheme
-                                                  .onSurfaceVariant,
-                                            ),
-                                      ),
-                                    ],
+                            Text(
+                              l10n.t('appTitle'),
+                              style: Theme.of(context).textTheme.headlineSmall,
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              l10n.t('subtitle'),
+                              style: Theme.of(context).textTheme.bodyMedium
+                                  ?.copyWith(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant,
                                   ),
-                                ),
-                                Text(l10n.t('language')),
-                                const SizedBox(width: 8),
-                                SegmentedButton<String>(
-                                  segments: [
-                                    ButtonSegment(
-                                      value: 'en',
-                                      label: Text(l10n.t('english')),
-                                    ),
-                                    ButtonSegment(
-                                      value: 'es',
-                                      label: Text(l10n.t('spanish')),
-                                    ),
-                                  ],
-                                  selected: {state.localeCode},
-                                  onSelectionChanged: state.isRunning
-                                      ? null
-                                      : (s) => cubit.setLocaleCode(s.first),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 24),
-                            PathField(
-                              label: l10n.t('sourceFolder'),
-                              hint: l10n.t('sourceHint'),
-                              value: state.sourceFolder,
-                              browseLabel: l10n.t('browse'),
-                              enabled: !state.isRunning,
-                              acceptFilesAsParentDir: true,
-                              onBrowse: () => _pickDirectory(
-                                onPicked: cubit.setSourceFolder,
-                              ),
-                              onPathDropped: cubit.setSourceFolder,
-                            ),
-                            const SizedBox(height: 16),
-                            PathField(
-                              label: l10n.t('workspaceRoot'),
-                              hint: l10n.t('workspaceHint'),
-                              value: state.workspaceRoot,
-                              browseLabel: l10n.t('browse'),
-                              enabled: !state.isRunning,
-                              onBrowse: () => _pickDirectory(
-                                onPicked: cubit.setWorkspaceRoot,
-                              ),
-                              onPathDropped: cubit.setWorkspaceRoot,
-                            ),
-                            const SizedBox(height: 16),
-                            PathField(
-                              label: l10n.t('mariaBin'),
-                              hint: l10n.t('mariaHint'),
-                              value: state.mariaDbBinDir,
-                              browseLabel: l10n.t('browse'),
-                              enabled: !state.isRunning,
-                              acceptFilesAsParentDir: true,
-                              onBrowse: () => _pickDirectory(
-                                onPicked: cubit.setMariaDbBinDir,
-                              ),
-                              onPathDropped: cubit.setMariaDbBinDir,
-                            ),
-                            const SizedBox(height: 20),
-                            Row(
-                              children: [
-                                FilledButton.icon(
-                                  onPressed: state.isRunning
-                                      ? null
-                                      : cubit.startImport,
-                                  icon: state.isRunning
-                                      ? const SizedBox(
-                                          width: 16,
-                                          height: 16,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                          ),
-                                        )
-                                      : const Icon(Icons.play_arrow),
-                                  label: Text(
-                                    state.isRunning
-                                        ? l10n.t('running')
-                                        : l10n.t('startImport'),
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                if (state.hasSuccess || state.hasFailure)
-                                  TextButton(
-                                    onPressed: state.isRunning
-                                        ? null
-                                        : cubit.clearResult,
-                                    child: Text(l10n.t('clear')),
-                                  ),
-                              ],
-                            ),
-                            const SizedBox(height: 20),
-                            ImportProgressPanel(
-                              phase: state.phase,
-                              progress: state.progress,
-                              isRunning: state.isRunning,
-                            ),
-                            if (state.errorMessage != null) ...[
-                              const SizedBox(height: 12),
-                              _StatusBanner(
-                                ok: false,
-                                title: l10n.t('failure'),
-                                body: state.errorMessage == 'missing_paths'
-                                    ? l10n.t('missingPaths')
-                                    : state.errorMessage!,
-                              ),
-                            ],
-                            if (state.hasSuccess) ...[
-                              const SizedBox(height: 12),
-                              _StatusBanner(
-                                ok: true,
-                                title: l10n.t('success'),
-                                body: state.report!.destinationPath,
-                              ),
-                            ],
-                            const SizedBox(height: 16),
-                            SizedBox(
-                              height: 360,
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  Expanded(
-                                    child: _LogPanel(lines: state.logLines),
-                                  ),
-                                  const SizedBox(width: 16),
-                                  Expanded(
-                                    child: state.report == null
-                                        ? Center(
-                                            child: Text(
-                                              l10n.t('idleHint'),
-                                              textAlign: TextAlign.center,
-                                              style: Theme.of(context)
-                                                  .textTheme
-                                                  .bodyLarge
-                                                  ?.copyWith(
-                                                    color: Theme.of(context)
-                                                        .colorScheme
-                                                        .onSurfaceVariant,
-                                                  ),
-                                            ),
-                                          )
-                                        : SingleChildScrollView(
-                                            child: ImportSummaryPanel(
-                                              report: state.report!,
-                                            ),
-                                          ),
-                                  ),
-                                ],
-                              ),
                             ),
                           ],
                         ),
                       ),
+                      Text(l10n.t('language')),
+                      const SizedBox(width: 8),
+                      SegmentedButton<String>(
+                        segments: [
+                          ButtonSegment(
+                            value: 'en',
+                            label: Text(l10n.t('english')),
+                          ),
+                          ButtonSegment(
+                            value: 'es',
+                            label: Text(l10n.t('spanish')),
+                          ),
+                        ],
+                        selected: {state.localeCode},
+                        onSelectionChanged: state.isRunning
+                            ? null
+                            : (s) => cubit.setLocaleCode(s.first),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  PathField(
+                    label: l10n.t('sourceFolder'),
+                    hint: l10n.t('sourceHint'),
+                    value: state.sourceFolder,
+                    browseLabel: l10n.t('browse'),
+                    enabled: !state.isRunning,
+                    acceptFilesAsParentDir: true,
+                    onBrowse: () => _pickDirectory(
+                      onPicked: cubit.setSourceFolder,
+                    ),
+                    onPathDropped: cubit.setSourceFolder,
+                  ),
+                  const SizedBox(height: 8),
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final wide = constraints.maxWidth >= 900;
+                      final workspace = PathField(
+                        label: l10n.t('workspaceRoot'),
+                        hint: l10n.t('workspaceHint'),
+                        value: state.workspaceRoot,
+                        browseLabel: l10n.t('browse'),
+                        enabled: !state.isRunning,
+                        onBrowse: () => _pickDirectory(
+                          onPicked: cubit.setWorkspaceRoot,
+                        ),
+                        onPathDropped: cubit.setWorkspaceRoot,
+                      );
+                      final maria = PathField(
+                        label: l10n.t('mariaBin'),
+                        hint: l10n.t('mariaHint'),
+                        value: state.mariaDbBinDir,
+                        browseLabel: l10n.t('browse'),
+                        enabled: !state.isRunning,
+                        acceptFilesAsParentDir: true,
+                        onBrowse: () => _pickDirectory(
+                          onPicked: cubit.setMariaDbBinDir,
+                        ),
+                        onPathDropped: cubit.setMariaDbBinDir,
+                      );
+                      if (!wide) {
+                        return Column(
+                          children: [
+                            workspace,
+                            const SizedBox(height: 8),
+                            maria,
+                          ],
+                        );
+                      }
+                      return Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(child: workspace),
+                          const SizedBox(width: 12),
+                          Expanded(child: maria),
+                        ],
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      FilledButton.icon(
+                        onPressed: state.isRunning ? null : cubit.startImport,
+                        icon: state.isRunning
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(Icons.play_arrow),
+                        label: Text(
+                          state.isRunning
+                              ? l10n.t('running')
+                              : l10n.t('startImport'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      if (state.hasSuccess || state.hasFailure)
+                        TextButton(
+                          onPressed: state.isRunning ? null : cubit.clearResult,
+                          child: Text(l10n.t('clear')),
+                        ),
+                      const Spacer(),
+                      Flexible(
+                        child: SizedBox(
+                          width: 420,
+                          child: ImportProgressPanel(
+                            phase: state.phase,
+                            progress: state.progress,
+                            isRunning: state.isRunning,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (state.errorMessage != null) ...[
+                    const SizedBox(height: 8),
+                    _StatusBanner(
+                      ok: false,
+                      title: l10n.t('failure'),
+                      body: state.errorMessage == 'missing_paths'
+                          ? l10n.t('missingPaths')
+                          : state.errorMessage!,
+                    ),
+                  ],
+                  if (state.hasSuccess) ...[
+                    const SizedBox(height: 8),
+                    _StatusBanner(
+                      ok: true,
+                      title: l10n.t('success'),
+                      body: state.report!.destinationPath,
+                    ),
+                  ],
+                  const SizedBox(height: 10),
+                  Expanded(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(
+                          flex: 5,
+                          child: _LogPanel(lines: state.logLines),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          flex: 5,
+                          child: state.report == null
+                              ? _IdlePanel(
+                                  message: state.sourceFolder.trim().isEmpty
+                                      ? l10n.t('idleHint')
+                                      : l10n.t('idleReadyHint'),
+                                )
+                              : ImportSummaryPanel(report: state.report!),
+                        ),
+                      ],
                     ),
                   ),
-                );
-              },
+                ],
+              ),
             );
           },
+        ),
+      ),
+    );
+  }
+}
+
+class _IdlePanel extends StatelessWidget {
+  const _IdlePanel({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: theme.colorScheme.outlineVariant),
+        color: theme.colorScheme.surfaceContainerLowest,
+      ),
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Text(
+            message,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyLarge?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
         ),
       ),
     );
@@ -259,17 +281,24 @@ class _StatusBanner extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: Row(
           children: [
             Text(
               title,
-              style: Theme.of(context).textTheme.titleSmall
-                  ?.copyWith(color: fg, fontWeight: FontWeight.w700),
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    color: fg,
+                    fontWeight: FontWeight.w700,
+                  ),
             ),
-            const SizedBox(height: 4),
-            SelectableText(body, style: TextStyle(color: fg)),
+            const SizedBox(width: 12),
+            Expanded(
+              child: SelectableText(
+                body,
+                style: TextStyle(color: fg),
+                maxLines: 2,
+              ),
+            ),
           ],
         ),
       ),
@@ -290,7 +319,7 @@ class _LogPanel extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(l10n.t('log'), style: theme.textTheme.titleMedium),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         Expanded(
           child: DecoratedBox(
             decoration: BoxDecoration(
@@ -307,9 +336,8 @@ class _LogPanel extends StatelessWidget {
                       return Text(
                         lines[index],
                         style: theme.textTheme.bodySmall?.copyWith(
-                          fontFamily: Platform.isWindows
-                              ? 'Consolas'
-                              : 'monospace',
+                          fontFamily:
+                              Platform.isWindows ? 'Consolas' : 'monospace',
                         ),
                       );
                     },

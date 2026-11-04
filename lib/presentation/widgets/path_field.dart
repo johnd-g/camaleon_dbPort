@@ -92,15 +92,15 @@ class _PathFieldState extends State<PathField> {
                     borderRadius: BorderRadius.circular(8),
                     color: fill,
                   ),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 12,
-                    ),
-                    child: Text(
-                      widget.value.isEmpty ? widget.hint : widget.value,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
+                  child: Text(
+                    widget.value.isEmpty ? widget.hint : widget.value,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: widget.value.isEmpty
                             ? theme.colorScheme.onSurfaceVariant
