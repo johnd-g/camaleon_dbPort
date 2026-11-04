@@ -8,7 +8,7 @@
 #define MyAppName "Camaleon DB Port"
 #define MyAppNameShort "CamaleonDBPort"
 #define MyAppExeName "camaleon_db_port.exe"
-#define MyAppVersion "1.0.0"
+#define MyAppVersion "1.0.1"
 #define MyAppPublisher "Camaleon Systems Inc"
 
 [Setup]
